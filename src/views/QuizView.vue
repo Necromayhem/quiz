@@ -1,75 +1,30 @@
 <script setup lang="ts">
-import { getQuizzes } from '@/api/quizApi';
-import type { Question } from '@/mocks/questions';
-import { computed, onBeforeMount, ref } from 'vue';
 
-const questions = ref<null | Question[]>(null);
-const error = ref<string | null>(null);
-const loading = ref(true)
-const currentIndex = ref(0);
-const selectedOptionId = ref<number | null>(null);
-const result = ref<boolean[]>([]);
-const endGame = ref(false)
+import { useQuizStore } from '@/store/quiz';
+import { storeToRefs } from 'pinia';
+
+const quizStore = useQuizStore();
+const { endGame, currentQuestion, score, selectedOptionId, questions } = storeToRefs(quizStore);
+const { nextQuestion, toggleOption, retry, } = quizStore;
 
 
-const currentQuestion = computed(() => questions.value?.length ? questions.value[currentIndex.value] : null)
-
-const resultView = computed(() => {
-  let true_answer = 0;
-
-  result.value.forEach(el => {
-    if (el === true) true_answer++;
-  })
-
-  return true_answer;
-})
-
-const nextQuestion = (id: number | null) => {
-  if (!selectedOptionId.value) return;
-
-  result.value.push(questions.value![currentIndex.value]?.options.find(el => el.id === id)?.isCorrect ?? false);
-  // console.log(result.value);
-  selectedOptionId.value = null;
-
-  if (questions.value!.length - 1 === currentIndex.value) {
-    endGame.value = true;
-    return;
-  }
-  currentIndex.value++
-}
-
-const toggleOption = (id: number) => {
-  selectedOptionId.value = selectedOptionId.value === id ? null : id;
-}
-
-const retry = () => {
-  endGame.value = false;
-  result.value = [];
-  currentIndex.value = 0;
-}
-
-onBeforeMount(async () => {
-  try {
-    questions.value = await getQuizzes();
-  } catch (e: any) {
-    error.value = e?.message ?? "Ошибка загрузки квиза"
-  } finally {
-    loading.value = false;
-  }
-})
 </script>
+
+
+
+
 
 <template>
   <h2>QUIZ PAGE</h2>
 
   <div 
-  v-if="currentQuestion && !endGame"
+  v-if="!endGame"
   class="question"
   >
-  <h3>{{ currentQuestion.text }}</h3>
+  <h3>{{ currentQuestion?.text }}</h3>
   <ul>
     <li 
-    v-for="opt in currentQuestion.options" 
+    v-for="opt in currentQuestion?.options" 
     :key="opt.id"
     @click="toggleOption(opt.id)"
     :class="{active: selectedOptionId === opt.id}"
@@ -82,7 +37,7 @@ onBeforeMount(async () => {
   <div v-if="endGame">
     <div>
       Result
-    {{ resultView }}/{{ questions?.length }}
+    {{ score }}/{{ questions.length }}
     </div>
     <button @click="retry">Retry</button>
   </div>
