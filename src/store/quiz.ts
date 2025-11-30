@@ -3,75 +3,101 @@ import type { Question, QuizPackId } from "@/mocks/questions";
 import { computed, ref } from "vue";
 import { getQuizzes } from "@/api/quizApi";
 
-
 export const useQuizStore = defineStore("quiz", () => {
   const questions = ref<Question[]>([]);
   const error = ref<string | null>(null);
-  const loading = ref(true);
-  const currentIndex = ref(0);
-  const currentPackId = ref<QuizPackId | null>(null) 
-  const selectedOptionId = ref<number | null>(null);
-  const result = ref<boolean[]>([]);
-  const endGame = ref(false);
-    
-  const startQuiz = async (packId: QuizPackId) => {
-      currentPackId.value = packId;
-      loading.value = true;
-      error.value = null;
+  const loading = ref(false);
 
-      try {
-          const data = await getQuizzes(packId);
-          questions.value = data;
-          currentIndex.value = 0;
-          result.value = [];
-          selectedOptionId.value = null;
-          endGame.value = false;
-      } catch (e: any) {
-          error.value = e?.message ?? 'Ошибка загрузки квиза'
-      } finally {
-          loading.value = false;
-      }
-  }
+  const currentIndex = ref(0);
+  const currentPackId = ref<QuizPackId | null>(null);
+
+  const selectedOptionId = ref<number | null>(null);
+  const answers = ref<boolean[]>([]); 
+  const isAnswered = ref(false);      
+  const endGame = ref(false);
 
   const currentQuestion = computed(() =>
-    questions.value?.length ? questions.value[currentIndex.value] : null
+    questions.value.length ? questions.value[currentIndex.value] : null
   );
 
-  const score = computed(() => {
-    let true_answer = 0;
+  const totalQuestions = computed(() => questions.value.length);
 
-    result.value.forEach((el) => {
-      if (el === true) true_answer++;
-    });
+  const score = computed(() =>
+    answers.value.reduce((sum, isCorrect) => sum + (isCorrect ? 1 : 0), 0)
+  );
 
-    return true_answer;
-  });
+  const startQuiz = async (id: QuizPackId) => {
+    loading.value = true;
+    error.value = null;
+    currentPackId.value = id;
 
-  const nextQuestion = (id: number | null) => {
-    if (selectedOptionId.value === null) return;
+    try {
+      const data = await getQuizzes(id);
+      questions.value = data;
 
-    result.value.push(
-      questions.value![currentIndex.value]?.options.find((el) => el.id === id)
-        ?.isCorrect ?? false
-    );
-    selectedOptionId.value = null;
-
-    if (questions.value.length - 1 === currentIndex.value) {
-      endGame.value = true;
-      return;
+      currentIndex.value = 0;
+      selectedOptionId.value = null;
+      answers.value = [];
+      isAnswered.value = false;
+      endGame.value = false;
+    } catch (e: any) {
+      error.value = e?.message ?? "Ошибка загрузки квиза";
+    } finally {
+      loading.value = false;
     }
-    currentIndex.value++;
   };
 
   const toggleOption = (id: number) => {
+    if (isAnswered.value) return; 
     selectedOptionId.value = selectedOptionId.value === id ? null : id;
   };
 
+  const checkAnswer = () => {
+    if (!currentQuestion.value || selectedOptionId.value === null) return;
+    if (isAnswered.value) return;
+
+    const selected = currentQuestion.value.options.find(
+      (opt) => opt.id === selectedOptionId.value
+    );
+
+    const isCorrect = !!selected?.isCorrect;
+    answers.value[currentIndex.value] = isCorrect;
+    isAnswered.value = true;
+  };
+
+  const nextQuestion = () => {
+    if (currentIndex.value < questions.value.length - 1) {
+      currentIndex.value += 1;
+      selectedOptionId.value = null;
+      isAnswered.value = false;
+    } else {
+      endGame.value = true;
+    }
+  };
+
   const retry = () => {
-    endGame.value = false;
-    result.value = [];
-    currentIndex.value = 0;
-    };
-    
-    return {error, loading, endGame, currentQuestion, score, nextQuestion, toggleOption, retry, startQuiz, selectedOptionId, questions}
+    if (!currentPackId.value) return;
+    startQuiz(currentPackId.value);
+  };
+
+  return {
+    questions,
+    error,
+    loading,
+    currentIndex,
+    currentPackId,
+    selectedOptionId,
+    answers,
+    isAnswered,
+    endGame,
+    currentQuestion,
+    totalQuestions,
+    score,
+    startQuiz,
+    toggleOption,
+    checkAnswer,
+    nextQuestion,
+    retry,
+  };
 });
+
