@@ -22,7 +22,9 @@ const {
 const { toggleOption, checkAnswer, nextQuestion } = quizStore;
 
 const isLastQuestion = computed(
-  () => totalQuestions.value > 0 && currentIndex.value === totalQuestions.value - 1
+  () =>
+    totalQuestions.value > 0 &&
+    currentIndex.value === totalQuestions.value - 1
 );
 
 const primaryButtonText = computed(() => {
@@ -55,6 +57,7 @@ const handlePrimaryClick = () => {
       </header>
 
       <main class="quiz">
+        <!-- Состояния -->
         <div v-if="loading" class="quiz__state quiz__state--loading">
           Загружаем вопросы...
         </div>
@@ -67,60 +70,63 @@ const handlePrimaryClick = () => {
           Квиз завершён
         </div>
 
-        <Transition name="quiz-fade" mode="out-in">
-          <div
-            v-if="currentQuestion && !endGame && !loading && !error"
-            :key="currentQuestion.id"
-            class="quiz__content"
-          >
-            <div class="quiz__meta">
-              <span class="quiz__progress">
-                Вопрос {{ currentIndex + 1 }} из {{ totalQuestions }}
-              </span>
-              <span class="quiz__score">
-                Правильных ответов: {{ score }}
-              </span>
-            </div>
-
-            <h2 class="quiz__question">
-              {{ currentQuestion.text }}
-            </h2>
-
-            <ul class="quiz__options">
-              <li
-                v-for="(opt, index) in currentQuestion.options"
-                :key="opt.id"
-                class="quiz__option"
-                :class="{
-                  'quiz__option--selected':
-                    selectedOptionId === opt.id && !isAnswered,
-                  'quiz__option--correct': isAnswered && opt.isCorrect,
-                  'quiz__option--wrong':
-                    isAnswered &&
-                    !opt.isCorrect &&
-                    selectedOptionId === opt.id,
-                  'quiz__option--disabled': isAnswered
-                }"
-                :style="{ animationDelay: (index * 0.04) + 's' }"
-                @click="!isAnswered && toggleOption(opt.id)"
-              >
-                <span class="quiz__option-text">
-                  {{ opt.text }}
-                </span>
-              </li>
-            </ul>
-
-            <div class="quiz__controls">
-              <button
-                class="quiz__button quiz__button--primary"
-                :disabled="!selectedOptionId && !isAnswered"
-                @click="handlePrimaryClick"
-              >
-                {{ primaryButtonText }}
-              </button>
-            </div>
+        <!-- Основной контент -->
+        <div v-else-if="currentQuestion" class="quiz__content">
+          <!-- ЭТО НЕ АНИМИРУЕМ -->
+          <div class="quiz__meta">
+            <span class="quiz__progress">
+              Вопрос {{ currentIndex + 1 }} из {{ totalQuestions }}
+            </span>
+            <span class="quiz__score">
+              Правильных ответов: {{ score }}
+            </span>
           </div>
-        </Transition>
+
+          <!-- ЭТО АНИМИРУЕМ, НО ОБЁРНУТО В РЕАЛЬНЫЙ WRAPPER, ЧТОБЫ GAP РАБОТАЛ -->
+          <div class="quiz__qa-wrapper">
+            <Transition name="quiz-fade" mode="out-in">
+              <div :key="currentQuestion.id" class="quiz__qa">
+                <h2 class="quiz__question">
+                  {{ currentQuestion.text }}
+                </h2>
+
+                <ul class="quiz__options">
+                  <li
+                    v-for="(opt, index) in currentQuestion.options"
+                    :key="opt.id"
+                    class="quiz__option"
+                    :class="{
+                      'quiz__option--selected':
+                        selectedOptionId === opt.id && !isAnswered,
+                      'quiz__option--correct': isAnswered && opt.isCorrect,
+                      'quiz__option--wrong':
+                        isAnswered &&
+                        !opt.isCorrect &&
+                        selectedOptionId === opt.id,
+                      'quiz__option--disabled': isAnswered
+                    }"
+                    :style="{ animationDelay: (index * 0.04) + 's' }"
+                    @click="!isAnswered && toggleOption(opt.id)"
+                  >
+                    <span class="quiz__option-text">
+                      {{ opt.text }}
+                    </span>
+                  </li>
+                </ul>
+
+                <div class="quiz__controls">
+                  <button
+                    class="quiz__button quiz__button--primary"
+                    :disabled="!selectedOptionId && !isAnswered"
+                    @click="handlePrimaryClick"
+                  >
+                    {{ primaryButtonText }}
+                  </button>
+                </div>
+              </div>
+            </Transition>
+          </div>
+        </div>
       </main>
     </div>
   </div>
@@ -135,7 +141,8 @@ const handlePrimaryClick = () => {
   background: #0f172a;
   padding: 24px;
   box-sizing: border-box;
-  font-family: 'Inter', sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
 }
 
 .quiz-page__container {
@@ -189,7 +196,31 @@ const handlePrimaryClick = () => {
   color: #22c55e;
 }
 
-/* Анимация смены вопроса */
+/* Контент квиза */
+.quiz__content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px; /* вот твой gap, он не ломается */
+}
+
+.quiz__meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+.quiz__qa-wrapper {
+  position: relative;
+  min-height: 140px;
+}
+
+.quiz__qa {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .quiz-fade-enter-active,
 .quiz-fade-leave-active {
   transition: opacity 0.25s ease, transform 0.25s ease;
@@ -199,19 +230,6 @@ const handlePrimaryClick = () => {
 .quiz-fade-leave-to {
   opacity: 0;
   transform: translateY(8px);
-}
-
-.quiz__content {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.quiz__meta {
-  display: flex;
-  justify-content: space-between;
-  font-size: 13px;
-  color: #9ca3af;
 }
 
 .quiz__question {
@@ -241,7 +259,7 @@ const handlePrimaryClick = () => {
     transform 0.08s ease,
     box-shadow 0.15s ease;
 
-  /* анимация появления опций */
+  /* анимация появления вариантов */
   opacity: 0;
   transform: translateY(6px);
   animation: option-in 0.25s ease forwards;
@@ -326,4 +344,5 @@ const handlePrimaryClick = () => {
   box-shadow: none;
 }
 </style>
+
 
