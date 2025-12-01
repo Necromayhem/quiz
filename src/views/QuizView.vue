@@ -57,7 +57,6 @@ const handlePrimaryClick = () => {
       </header>
 
       <main class="quiz">
-        <!-- Состояния -->
         <div v-if="loading" class="quiz__state quiz__state--loading">
           Загружаем вопросы...
         </div>
@@ -70,9 +69,7 @@ const handlePrimaryClick = () => {
           Квиз завершён
         </div>
 
-        <!-- Основной контент -->
         <div v-else-if="currentQuestion" class="quiz__content">
-          <!-- ЭТО НЕ АНИМИРУЕМ -->
           <div class="quiz__meta">
             <span class="quiz__progress">
               Вопрос {{ currentIndex + 1 }} из {{ totalQuestions }}
@@ -82,7 +79,6 @@ const handlePrimaryClick = () => {
             </span>
           </div>
 
-          <!-- ЭТО АНИМИРУЕМ, НО ОБЁРНУТО В РЕАЛЬНЫЙ WRAPPER, ЧТОБЫ GAP РАБОТАЛ -->
           <div class="quiz__qa-wrapper">
             <Transition name="quiz-fade" mode="out-in">
               <div :key="currentQuestion.id" class="quiz__qa">
@@ -196,11 +192,10 @@ const handlePrimaryClick = () => {
   color: #22c55e;
 }
 
-/* Контент квиза */
 .quiz__content {
   display: flex;
   flex-direction: column;
-  gap: 20px; /* вот твой gap, он не ломается */
+  gap: 20px; 
 }
 
 .quiz__meta {
@@ -259,7 +254,6 @@ const handlePrimaryClick = () => {
     transform 0.08s ease,
     box-shadow 0.15s ease;
 
-  /* анимация появления вариантов */
   opacity: 0;
   transform: translateY(6px);
   animation: option-in 0.25s ease forwards;
